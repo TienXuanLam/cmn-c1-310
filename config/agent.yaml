@@ -1,0 +1,25 @@
+# Agent Manifest — AgentRegistry entry point
+# This file is required for AgentRegistry auto-discovery (lazy-load architecture)
+
+id: "CMN-C1-310"
+name: "cmn-c1-310"
+namespace: "cmn"
+version: "1.1.1"
+description: "Allowlisted-command execution over host-key-verified SSH, against a caller-supplied target and credentials."
+enabled: true
+category: "Cat 1"
+generation_mode: "llm"
+industry: "CMN"
+base_type: "AgentBaseGraph"
+class: "src.graph.graph.Graph"
+required_trust_level: "VERIFIED_EXTERNAL"
+requires:
+  # SSH_PRIVATE_KEY / SSH_KNOWN_HOSTS are NOT deployment secrets: the caller
+  # supplies them per request (InvokeRequest.ssh_private_key/ssh_known_hosts),
+  # since this agent SSHes into whatever environment the caller names, not a
+  # fixed host. See docs/02_design.md "Dynamic SSH target".
+  secrets:
+    - "AZURE_OPENAI_API_KEY"
+    - "AZURE_OPENAI_ENDPOINT"
+    - "AZURE_OPENAI_DEPLOYMENT"
+  extras: ["openai"]

@@ -1,0 +1,54 @@
+# Runtime configuration for SSHCommandAgent (CMN-C1-310)
+# Loaded by src/api/server.py and passed to Graph(config=...).
+#
+# Public input is free-text (e.g. "run uptime on db01.internal.example.com")
+# plus caller-supplied ssh_private_key/ssh_known_hosts (per-request, not a
+# deployment secret — see docs/02_design.md "Dynamic SSH target").
+# PreProcessNode uses an LLM (pre_process_llm below) to extract a host/command
+# candidate from the free text, then:
+#   - the extracted host is checked against _is_blocked_target (loopback/
+#     private/link-local/reserved/cloud-metadata) — there is no fixed host
+#     allowlist, since the target is caller-defined;
+#   - the extracted command is hard-rejected unless present in
+#     command_allowlist (S-1/S-2) below — this remains fixed and is the only
+#     thing that decides which commands may run. See docs/02_design.md.
+
+max_retry: 2
+timeout_seconds: 30
+max_output_bytes: 262144
+memory_enabled: false
+hitl:
+  enabled: false
+ssh_username: agentcore
+
+# deploy/invoke_payload.json's ssh_private_key/ssh_known_hosts are Stage 5
+# rehearsal placeholders (not a real SSH host/key), so the correct first
+# invoke against an unwired staging environment is a controlled
+# SSH_EXECUTION_FAILED/SSH_SECRET_MISSING refusal, not a real command
+# execution. See scripts/stg_invoke_evidence.py::_stg_expected_status.
+stg_expected_status: error
+
+# LLM-based host/command extraction from free-text user_input (PreProcessNode).
+# Unlike post_process's llm block, there is no execution fallback on failure --
+# a provider failure/timeout here must hard-reject (EXTRACTION_UNAVAILABLE),
+# because guessing host/command by any other means is unsafe. Set enabled:
+# false as an emergency kill-switch -- every request then hard-rejects with
+# EXTRACTION_UNAVAILABLE immediately, no LLM call attempted.
+pre_process_llm:
+  enabled: true
+  timeout_s: 10
+  max_retries: 1
+  max_extract_tokens: 64
+
+# LLM-generated Markdown summary of the executed command's raw output
+# (PostProcessNode). Falls back to a deterministic raw-Markdown rendering
+# when the LLM call fails/times out — see docs/02_design.md.
+llm:
+  enabled: true
+  timeout_s: 20
+  max_retries: 1
+  max_summary_tokens: 512
+
+command_allowlist:
+  - uptime
+  - df -h

@@ -1,0 +1,44 @@
+[project]
+name = "cmn-c1-310"
+version = "1.1.0"
+description = "Allowlisted remote command execution over host-key-verified SSH"
+requires-python = ">=3.11"
+dependencies = [
+    "agenticstar-agentcore[marketplace,openai]==1.0.3",
+    "paramiko==3.4.0",
+    "pyyaml==6.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.3",
+    "pytest-cov==5.0.0",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.4.4",
+    "mypy==1.10.0",
+]
+
+[build-system]
+requires = ["setuptools==68.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+# The published agenticstar-agentcore wheel ships no py.typed marker / stubs
+# for framework.*/shared.* -- ignore_missing_imports below makes every
+# framework/shared symbol resolve to Any, which strict's
+# disallow_subclassing_any would otherwise reject for every node/graph class
+# in this template (FunctionNode, AgentBaseGraph, AgentState are all
+# framework.* base classes). Disabled fleet-wide rather than per-class: it is
+# a consequence of the SDK's own missing stubs, not a signal about this
+# template's code quality.
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = ["framework.*", "shared.*", "paramiko.*", "paramiko", "yaml.*"]
+ignore_missing_imports = true
